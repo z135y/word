@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業直向作文抄寫產生器</title>
+    <title>專業直向作文抄寫產生器 (電腦匯出版)</title>
     <style>
         :root {
-            /* 根據業界規範設定標準稿紙顏色 */
+            /* 資訊來源：業界標準稿紙綠色規範 */
             --paper-grid-color: #2e7d32; 
             --cell-size: 50px; 
-            --rows-per-col: 6; /* 預設每列字數 */
+            --rows-per-col: 6; 
             --bg-color: #f4f7f6;
         }
 
@@ -17,80 +17,80 @@
 
         body { 
             font-family: "標楷體", "BiauKai", "DFKai-SB", serif; 
-            padding: 30px; 
+            padding: 20px; 
             background: var(--bg-color); 
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            writing-mode: horizontal-tb; /* 確保主控制介面為橫向 */
         }
 
-        /* UI 控制面板 */
+        /* 介面操作面板 */
         .ui-panel { 
             background: white; 
             padding: 25px; 
             border-radius: 12px; 
-            margin-bottom: 40px; 
-            box-shadow: 0 4px 25px rgba(0,0,0,0.08); 
+            margin-bottom: 30px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             width: 100%;
-            max-width: 1000px;
+            max-width: 900px;
         }
 
         .ui-title {
             font-size: 1.2rem;
             font-weight: bold;
             color: var(--paper-grid-color);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             border-left: 5px solid var(--paper-grid-color);
             padding-left: 10px;
         }
 
+        /* 電腦端下載/匯出引導 */
+        .instruction-box {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            padding: 15px;
+            font-size: 15px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            color: #004085;
+            line-height: 1.6;
+        }
+
         textarea { 
             width: 100%; 
-            height: 200px;
-            padding: 20px; 
-            border: 1.5px solid #ced4da; 
-            border-radius: 8px; 
-            font-size: 22px;
-            font-family: inherit;
+            height: 180px;
+            padding: 15px; 
+            border: 1.5px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 20px;
             writing-mode: vertical-rl; 
             text-orientation: upright;
-            line-height: 1.8;
             background: #fffdf9;
             outline: none;
+            line-height: 1.8;
         }
-        
-        textarea:focus { border-color: var(--paper-grid-color); }
 
         .config-bar {
-            margin-top: 20px;
+            margin-top: 15px;
             display: flex;
-            flex-wrap: wrap;
             gap: 20px;
-            align-items: center;
             padding: 15px;
             background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .config-item { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #444; }
-
-        input[type="number"], input[type="range"] {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border-radius: 6px;
+            font-size: 14px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
         .btn-group {
             margin-top: 20px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 12px;
         }
 
         button { 
-            padding: 12px 35px; 
+            padding: 12px 28px; 
             cursor: pointer; 
             border: none; 
             border-radius: 6px; 
@@ -98,52 +98,50 @@
             font-size: 16px;
             background: var(--paper-grid-color);
             color: white;
-            transition: opacity 0.2s;
+            transition: 0.2s;
         }
         
         button:hover { opacity: 0.9; }
+        .btn-download { background: #004085; }
 
-        /* 內容顯示區塊 */
+        /* 稿紙渲染區域 */
         #main-container {
             display: flex;
             flex-direction: column;
-            gap: 50px;
+            gap: 40px;
             width: 100%;
             align-items: center;
         }
 
         .page-block {
             background: white;
-            padding: 50px 70px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.05);
+            padding: 50px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
             align-items: flex-end; 
             page-break-after: always;
-            border: 1px solid #dee2e6;
+            border: 1px solid #ddd;
         }
 
         .area-label {
-            font-size: 15px;
+            font-size: 14px;
             color: #666;
             margin-bottom: 12px;
-            padding-right: 15px;
             border-right: 4px solid var(--paper-grid-color);
+            padding-right: 12px;
             text-align: right;
             width: 100%;
             font-weight: bold;
         }
 
-        /* 直排網格核心邏輯 */
         .manuscript-grid {
             display: grid;
-            writing-mode: vertical-rl; /* 上至下，右至左 */
+            writing-mode: vertical-rl; 
             text-orientation: upright;
-            /* 垂直方向格子數 */
             grid-template-columns: repeat(var(--rows-per-col), var(--cell-size));
-            /* 水平方向自動擴展 */
             grid-auto-rows: var(--cell-size);
-            grid-auto-flow: row; /* 先垂直填滿一列，再向左移動 */
+            grid-auto-flow: row; 
             border-top: 2.5px solid var(--paper-grid-color);
             border-right: 2.5px solid var(--paper-grid-color);
             background: white;
@@ -161,12 +159,10 @@
             position: relative;
         }
 
-        /* 十字格虛線 */
         .cell::after {
             content: "";
             position: absolute;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             background-image: 
                 linear-gradient(to right, rgba(46, 125, 50, 0.1) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(46, 125, 50, 0.1) 1px, transparent 1px);
@@ -175,41 +171,54 @@
             pointer-events: none;
         }
 
-        .spacer { height: 60px; width: 100%; position: relative; }
-        .spacer::before { content: ""; position: absolute; top: 50%; left: 0; width: 100%; border-top: 1px dashed #ced4da; }
+        .divider { height: 60px; width: 100%; position: relative; }
+        .divider::after { content: ""; position: absolute; top: 50%; left: 0; width: 100%; border-top: 1px dashed #ccc; }
+
+        /* 業界標準：A4 列印樣式設定 */
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
 
         @media print {
-            .ui-panel { display: none; }
             body { background: white; padding: 0; }
-            .page-block { box-shadow: none; border: none; margin: 0; padding: 20px; }
-            #main-container { gap: 0; }
+            .ui-panel { display: none; }
+            #main-container { gap: 0; width: 100%; }
+            .page-block { 
+                box-shadow: none; 
+                border: none; 
+                margin: 0; 
+                padding: 10mm; 
+                width: 190mm; /* A4 列印安全寬度 */
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="ui-panel">
-    <div class="ui-title">專業直向作文抄寫產生器 (上至下書寫模式)</div>
+    <div class="ui-title">專業直向作文抄寫產生器</div>
+    
+    <!-- 電腦端專屬引導資訊 -->
+    <div class="instruction-box">
+        <b>💻 電腦匯出教學：</b><br>
+        1. 在輸入框填寫文字。<br>
+        2. 點擊下方 <b>「匯出成品為 PDF」</b>。<br>
+        3. 視窗跳出後，在右側「目的地」選單選擇 <b>「另存為 PDF (Save as PDF)」</b> 並儲存。
+    </div>
     
     <textarea id="textInput" oninput="sync()" placeholder="在此輸入文字...">文字由上而下
 由右向左換列
-請選擇列字數
-方便抄寫練習</textarea>
+抄寫練習工具</textarea>
     
     <div class="config-bar">
-        <div class="config-item">
-            <label for="rowSelect">每列字數 (垂直)：</label>
-            <input type="number" id="rowSelect" value="6" min="1" max="30" oninput="sync()">
-        </div>
-        <div class="config-item">
-            <label for="sizeRange">格子大小 (px)：</label>
-            <input type="range" id="sizeRange" min="30" max="100" value="50" oninput="sync()">
-        </div>
+        <div>每列字數 (垂直)：<input type="number" id="rowSelect" value="6" min="1" max="30" oninput="sync()" style="width:60px; padding:5px;"></div>
+        <div>格子大小：<input type="range" id="sizeRange" min="30" max="100" value="50" oninput="sync()"></div>
     </div>
     
     <div class="btn-group">
-        <span id="counter" style="color:#6c757d; font-size:14px;">字數統計：0</span>
-        <button onclick="window.print()">列印 / 存為 PDF</button>
+        <button onclick="sync()">🔄 更新預覽</button>
+        <button class="btn-download" onclick="window.print()">📥 匯出成品為 PDF</button>
     </div>
 </div>
 
@@ -220,92 +229,65 @@
         const rawText = document.getElementById('textInput').value;
         const rowsPerCol = parseInt(document.getElementById('rowSelect').value) || 6;
         const cellSize = parseInt(document.getElementById('sizeRange').value) || 50;
-        
         const container = document.getElementById('main-container');
-        document.getElementById('counter').innerText = `字數統計：${rawText.replace(/\s/g, '').length}`;
 
-        // 更新 CSS 變數
         document.documentElement.style.setProperty('--rows-per-col', rowsPerCol);
         document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
 
-        const colsPerPage = 15; 
-        const totalCellsPerPage = rowsPerCol * colsPerPage;
-
-        // 處理換行：補齊垂直剩餘格數以換列
         let processedText = "";
-        const rawLines = rawText.split('\n');
-        rawLines.forEach(line => {
-            const cleanLine = line.trim();
-            if (cleanLine.length > 0) {
-                processedText += cleanLine;
-                const remainder = cleanLine.length % rowsPerCol;
-                if (remainder !== 0) {
-                    processedText += " ".repeat(rowsPerCol - remainder);
-                }
+        rawText.split('\n').forEach(line => {
+            const clean = line.trim();
+            if (clean.length > 0) {
+                processedText += clean;
+                const rem = clean.length % rowsPerCol;
+                if (rem !== 0) processedText += " ".repeat(rowsPerCol - rem);
             } else {
                 processedText += " ".repeat(rowsPerCol);
             }
         });
 
         container.innerHTML = '';
-        if (processedText.length === 0) { renderPage("", 1); return; }
+        const limit = rowsPerCol * 15; 
 
-        for (let i = 0; i < processedText.length; i += totalCellsPerPage) {
-            const chunk = processedText.substring(i, i + totalCellsPerPage);
-            renderPage(chunk, Math.floor(i / totalCellsPerPage) + 1);
+        if (processedText.length === 0) {
+            renderPage("", 1, rowsPerCol, limit);
+            return;
         }
 
-        function renderPage(content, pageNum) {
+        for (let i = 0; i < processedText.length; i += limit) {
+            const chunk = processedText.substring(i, i + limit);
+            renderPage(chunk, Math.floor(i / limit) + 1, rowsPerCol, limit);
+        }
+
+        function renderPage(content, num, rows, total) {
             const block = document.createElement('div');
             block.className = 'page-block';
-
-            // 建立示範區
-            block.appendChild(createSection(`示範區 (每列 ${rowsPerCol} 字)`, content, true));
-            
-            // 建立分隔線
-            const spacer = document.createElement('div');
-            spacer.className = 'spacer';
-            block.appendChild(spacer);
-            
-            // 建立抄寫區 (空網格)
-            block.appendChild(createSection(`練習抄寫區`, "", false, content.length));
-
+            block.appendChild(createSection(`示範區 (第 ${num} 頁)`, content, true, rows, total));
+            const div = document.createElement('div'); div.className = 'divider';
+            block.appendChild(div);
+            block.appendChild(createSection(`練習抄寫區`, "", false, rows, total));
             container.appendChild(block);
         }
 
-        function createSection(labelText, content, isDemo, minChars = 0) {
-            const wrapper = document.createElement('div');
-            wrapper.style.display = "flex";
-            wrapper.style.flexDirection = "column";
-            wrapper.style.alignItems = "flex-end";
-            wrapper.style.width = "100%";
-
-            const label = document.createElement('div');
-            label.className = 'area-label';
-            label.innerText = labelText;
-            wrapper.appendChild(label);
-
+        function createSection(label, text, isDemo, rows, total) {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = "display:flex;flex-direction:column;align-items:flex-end;width:100%;";
+            const lbl = document.createElement('div');
+            lbl.className = 'area-label'; lbl.innerText = label;
+            wrap.appendChild(lbl);
             const grid = document.createElement('div');
             grid.className = 'manuscript-grid';
-            
-            // 計算網格長度，確保示範區與抄寫區對齊
-            const targetLength = isDemo ? Math.max(totalCellsPerPage, content.length) : Math.max(totalCellsPerPage, minChars);
-            const finalLength = Math.ceil(targetLength / rowsPerCol) * rowsPerCol;
-
-            for (let j = 0; j < finalLength; j++) {
+            for (let j = 0; j < total; j++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                const char = content[j];
-                cell.innerText = isDemo && char && char !== ' ' ? char : '';
+                const c = text[j];
+                cell.innerText = isDemo && c && c !== ' ' ? c : '';
                 grid.appendChild(cell);
             }
-            
-            wrapper.appendChild(grid);
-            return wrapper;
+            wrap.appendChild(grid);
+            return wrap;
         }
     }
-
-    // 初始執行一次
     window.onload = sync;
 </script>
 
