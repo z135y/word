@@ -3,64 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業直向作文抄寫產生器</title>
+    <title>專業直向作文抄寫產生器 (垂直流向修正版)</title>
     <style>
         :root {
-            /* 業界稿紙標準顏色：綠色或紅色 */
+            /* 業界稿紙標準顏色：經典綠色 */
             --paper-grid-color: #2e7d32; 
-            --cell-size: 32px; 
-            --bg-color: #f0f2f5;
+            --cell-size: 50px; 
+            --rows-per-col: 6; /* 每列字數 (垂直) */
+            --bg-color: #f4f7f6;
         }
 
         * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
 
         body { 
             font-family: "標楷體", "BiauKai", "DFKai-SB", serif; 
-            padding: 20px; 
+            padding: 30px; 
             background: var(--bg-color); 
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            writing-mode: horizontal-tb; /* 主頁面維持橫向以堆疊區塊 */
         }
 
-        /* 操作面板 */
+        /* 操作面板樣式 */
         .ui-panel { 
             background: white; 
             padding: 25px; 
             border-radius: 12px; 
-            margin-bottom: 30px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            margin-bottom: 40px; 
+            box-shadow: 0 4px 25px rgba(0,0,0,0.08); 
             width: 100%;
-            max-width: 950px;
+            max-width: 1000px;
         }
 
-        /* 直排輸入框：模擬寫作感 */
+        .ui-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--paper-grid-color);
+            margin-bottom: 15px;
+            border-left: 5px solid var(--paper-grid-color);
+            padding-left: 10px;
+        }
+
+        /* 直排輸入框：強化直書語感 */
         textarea { 
             width: 100%; 
-            height: 180px;
-            padding: 15px; 
-            border: 1.5px solid #ddd; 
+            height: 200px;
+            padding: 20px; 
+            border: 1.5px solid #ced4da; 
             border-radius: 8px; 
-            font-size: 20px;
+            font-size: 22px;
             font-family: inherit;
             writing-mode: vertical-rl; 
             text-orientation: upright;
             line-height: 1.8;
             background: #fffdf9;
             outline: none;
-            resize: none;
+        }
+        
+        textarea:focus { border-color: var(--paper-grid-color); }
+
+        .config-bar {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .config-item { display: flex; align-items: center; gap: 8px; font-weight: bold; color: #444; }
+
+        input[type="number"], input[type="range"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
 
         .btn-group {
-            margin-top: 15px;
+            margin-top: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         button { 
-            padding: 12px 30px; 
+            padding: 12px 35px; 
             cursor: pointer; 
             border: none; 
             border-radius: 6px; 
@@ -68,51 +99,54 @@
             font-size: 16px;
             background: var(--paper-grid-color);
             color: white;
+            transition: opacity 0.2s;
         }
+        
+        button:hover { opacity: 0.9; }
 
-        /* 稿紙頁面區塊 */
+        /* 稿紙顯示容器 */
         #main-container {
             display: flex;
             flex-direction: column;
-            gap: 40px;
+            gap: 50px;
+            width: 100%;
             align-items: center;
         }
 
         .page-block {
             background: white;
-            padding: 40px 60px;
-            box-shadow: 0 0 25px rgba(0,0,0,0.05);
+            padding: 50px 70px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.05);
             display: flex;
             flex-direction: column;
-            align-items: flex-end; /* 讓直排內容由右至左起始 */
+            align-items: flex-end; 
             page-break-after: always;
-            border: 1px solid #ddd;
+            border: 1px solid #dee2e6;
         }
 
         .area-label {
-            font-size: 14px;
-            color: #777;
-            margin: 10px 0;
-            padding-right: 12px;
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-right: 15px;
             border-right: 4px solid var(--paper-grid-color);
             text-align: right;
             width: 100%;
             font-weight: bold;
-            letter-spacing: 2px;
         }
 
-        /* 核心網格：強制生成多欄位 */
+        /* 稿紙網格：核心直排書寫邏輯 */
         .manuscript-grid {
             display: grid;
-            writing-mode: vertical-rl; 
+            writing-mode: vertical-rl; /* 文字直排：上至下，右至左 */
             text-orientation: upright;
-            /* 垂直方向：20 格 */
-            grid-template-rows: repeat(20, var(--cell-size)); 
-            /* 水平方向：15 欄，確保不會只有一行 */
-            grid-template-columns: repeat(15, var(--cell-size)); 
-            grid-auto-flow: row; /* 先垂直填滿，再向左換欄 */
-            border-top: 2px solid var(--paper-grid-color);
-            border-right: 2px solid var(--paper-grid-color);
+            /* 在 vertical-rl 下，inline 軸是垂直的，所以用 columns 定義高度 */
+            grid-template-columns: repeat(var(--rows-per-col), var(--cell-size));
+            /* Block 軸是水平的，定義換列的寬度 */
+            grid-auto-rows: var(--cell-size);
+            grid-auto-flow: row; /* 先在垂直方向填滿，再橫向換列 */
+            border-top: 2.5px solid var(--paper-grid-color);
+            border-right: 2.5px solid var(--paper-grid-color);
             background: white;
         }
 
@@ -124,28 +158,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: calc(var(--cell-size) * 0.7);
             position: relative;
         }
 
-        /* 內部十字輔助線 */
         .cell::after {
             content: "";
             position: absolute;
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(to right, rgba(46, 125, 50, 0.08) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(46, 125, 50, 0.08) 1px, transparent 1px);
+                linear-gradient(to right, rgba(46, 125, 50, 0.1) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(46, 125, 50, 0.1) 1px, transparent 1px);
             background-position: center;
             background-size: 100% 100%;
             pointer-events: none;
         }
 
-        .divider {
-            height: 50px;
-            width: 100%;
-        }
+        .spacer { height: 60px; width: 100%; position: relative; }
+        .spacer::before { content: ""; position: absolute; top: 50%; left: 0; width: 100%; border-top: 1px dashed #ced4da; }
 
         @media print {
             .ui-panel { display: none; }
@@ -158,16 +189,27 @@
 <body>
 
 <div class="ui-panel">
-    <div style="margin-bottom:10px; font-weight:bold; color:var(--paper-grid-color);">
-        專業直向作文稿紙產生器 (20x15 格式)
+    <div class="ui-title">專業直向作文抄寫產生器 (上至下書寫模式)</div>
+    
+    <textarea id="textInput" oninput="sync()" placeholder="在此輸入文字...">文字由上而下
+由右向左換列
+請選擇列字數
+方便抄寫練習</textarea>
+    
+    <div class="config-bar">
+        <div class="config-item">
+            <label for="rowSelect">每列字數 (垂直)：</label>
+            <input type="number" id="rowSelect" value="6" min="1" max="30" oninput="sync()">
+        </div>
+        <div class="config-item">
+            <label for="sizeRange">格子大小：</label>
+            <input type="range" id="sizeRange" min="30" max="100" value="50" oninput="sync()">
+        </div>
     </div>
-    <textarea id="textInput" oninput="sync()" placeholder="請在此輸入文字，下方將自動同步為示範區...">這個冬天和以往不一樣，我們並沒有在一片歡樂的氣氛中度過愉快的春節。家家戶戶閉門不出，期盼着這次疫情早點過去。
-
-然而當我們大家窩在家裡的時候，仍然有一群人義無反顧的衝到一線和病魔做鬥爭...</textarea>
     
     <div class="btn-group">
-        <span id="counter" style="color:#888; font-size:14px;">字數統計：0 字</span>
-        <button onclick="window.print()">列印 / 轉存 PDF</button>
+        <span id="counter" style="color:#6c757d; font-size:14px;">字數統計：0</span>
+        <button onclick="window.print()">儲存為 PDF / 列印</button>
     </div>
 </div>
 
@@ -176,77 +218,94 @@
 <script>
     function sync() {
         const rawText = document.getElementById('textInput').value;
+        const rowsPerCol = parseInt(document.getElementById('rowSelect').value) || 6;
+        const cellSize = parseInt(document.getElementById('sizeRange').value) || 50;
+        
         const container = document.getElementById('main-container');
-        document.getElementById('counter').innerText = `字數統計：${rawText.replace(/\s/g, '').length} 字`;
+        document.getElementById('counter').innerText = `字數統計：${rawText.replace(/\s/g, '').length}`;
 
-        // 處理格式：自動偵測換行並縮進兩格
-        const lines = rawText.split('\n');
+        // 動態更新 CSS 變數以控制佈局
+        document.documentElement.style.setProperty('--rows-per-col', rowsPerCol);
+        document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
+
+        const colsPerPage = 15; 
+        const totalCellsPerPage = rowsPerCol * colsPerPage;
+
+        // 換行邏輯處理：補齊垂直剩餘空格以達成換列效果
         let processedText = "";
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.length > 0) {
-                processedText += "　　" + trimmed;
+        const rawLines = rawText.split('\n');
+        rawLines.forEach(line => {
+            const cleanLine = line.trim();
+            if (cleanLine.length > 0) {
+                processedText += cleanLine;
+                const remainder = cleanLine.length % rowsPerCol;
+                if (remainder !== 0) {
+                    processedText += " ".repeat(rowsPerCol - remainder);
+                }
+            } else {
+                processedText += " ".repeat(rowsPerCol);
             }
         });
 
         container.innerHTML = '';
-        const rowsPerCol = 20; 
-        const colsPerPage = 15; 
-        const totalCells = rowsPerCol * colsPerPage; // 300字一頁
+        if (processedText.length === 0) { renderPage("", 1); return; }
 
-        if (processedText.length === 0) {
-            renderPage("", 1);
-            return;
-        }
-
-        // 按照 300 字一頁進行切割
-        for (let i = 0; i < processedText.length; i += totalCells) {
-            const chunk = processedText.substring(i, i + totalCells);
-            renderPage(chunk, Math.floor(i / totalCells) + 1);
+        for (let i = 0; i < processedText.length; i += totalCellsPerPage) {
+            const chunk = processedText.substring(i, i + totalCellsPerPage);
+            renderPage(chunk, Math.floor(i / totalCellsPerPage) + 1);
         }
 
         function renderPage(content, pageNum) {
             const block = document.createElement('div');
             block.className = 'page-block';
 
-            // --- 示範區 (Top) ---
-            const label1 = document.createElement('div');
-            label1.className = 'area-label';
-            label1.innerText = `示範區 (第 ${pageNum} 頁)`;
-            block.appendChild(label1);
-
-            const grid1 = document.createElement('div');
-            grid1.className = 'manuscript-grid';
-            for (let j = 0; j < totalCells; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.innerText = content[j] || '';
-                grid1.appendChild(cell);
-            }
-            block.appendChild(grid1);
-
-            block.appendChild(document.createElement('div')).className = 'divider';
-
-            // --- 抄寫區 (Bottom) ---
-            const label2 = document.createElement('div');
-            label2.className = 'area-label';
-            label2.innerText = `練習抄寫區`;
-            block.appendChild(label2);
-
-            const grid2 = document.createElement('div');
-            grid2.className = 'manuscript-grid';
-            for (let j = 0; j < totalCells; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.innerText = ''; 
-                grid2.appendChild(cell);
-            }
-            block.appendChild(grid2);
+            // 建立示範區
+            block.appendChild(createSection(`示範區 (每列 ${rowsPerCol} 字)`, content, true));
+            
+            // 建立分隔線
+            const spacer = document.createElement('div');
+            spacer.className = 'spacer';
+            block.appendChild(spacer);
+            
+            // 建立抄寫區 (空網格)
+            block.appendChild(createSection(`練習抄寫區`, "", false, content.length));
 
             container.appendChild(block);
         }
+
+        function createSection(labelText, content, isDemo, minChars = 0) {
+            const wrapper = document.createElement('div');
+            wrapper.style.display = "flex";
+            wrapper.style.flexDirection = "column";
+            wrapper.style.alignItems = "flex-end";
+            wrapper.style.width = "100%";
+
+            const label = document.createElement('div');
+            label.className = 'area-label';
+            label.innerText = labelText;
+            wrapper.appendChild(label);
+
+            const grid = document.createElement('div');
+            grid.className = 'manuscript-grid';
+            
+            // 計算網格長度
+            const targetLength = isDemo ? Math.max(totalCellsPerPage, content.length) : Math.max(totalCellsPerPage, minChars);
+            const finalLength = Math.ceil(targetLength / rowsPerCol) * rowsPerCol;
+
+            for (let j = 0; j < finalLength; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                const char = content[j];
+                cell.innerText = isDemo && char && char !== ' ' ? char : '';
+                grid.appendChild(cell);
+            }
+            
+            wrapper.appendChild(grid);
+            return wrapper;
+        }
     }
 
+    // 初始載入
     window.onload = sync;
 </script>
 
