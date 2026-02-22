@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業直向作文抄寫產生器 (垂直流向修正版)</title>
+    <title>專業直向作文抄寫產生器</title>
     <style>
         :root {
-            /* 業界稿紙標準顏色：經典綠色 */
+            /* 根據業界規範設定標準稿紙顏色 */
             --paper-grid-color: #2e7d32; 
             --cell-size: 50px; 
-            --rows-per-col: 6; /* 每列字數 (垂直) */
+            --rows-per-col: 6; /* 預設每列字數 */
             --bg-color: #f4f7f6;
         }
 
@@ -23,10 +23,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            writing-mode: horizontal-tb; /* 主頁面維持橫向以堆疊區塊 */
+            writing-mode: horizontal-tb; /* 確保主控制介面為橫向 */
         }
 
-        /* 操作面板樣式 */
+        /* UI 控制面板 */
         .ui-panel { 
             background: white; 
             padding: 25px; 
@@ -46,7 +46,6 @@
             padding-left: 10px;
         }
 
-        /* 直排輸入框：強化直書語感 */
         textarea { 
             width: 100%; 
             height: 200px;
@@ -104,7 +103,7 @@
         
         button:hover { opacity: 0.9; }
 
-        /* 稿紙顯示容器 */
+        /* 內容顯示區塊 */
         #main-container {
             display: flex;
             flex-direction: column;
@@ -135,16 +134,16 @@
             font-weight: bold;
         }
 
-        /* 稿紙網格：核心直排書寫邏輯 */
+        /* 直排網格核心邏輯 */
         .manuscript-grid {
             display: grid;
-            writing-mode: vertical-rl; /* 文字直排：上至下，右至左 */
+            writing-mode: vertical-rl; /* 上至下，右至左 */
             text-orientation: upright;
-            /* 在 vertical-rl 下，inline 軸是垂直的，所以用 columns 定義高度 */
+            /* 垂直方向格子數 */
             grid-template-columns: repeat(var(--rows-per-col), var(--cell-size));
-            /* Block 軸是水平的，定義換列的寬度 */
+            /* 水平方向自動擴展 */
             grid-auto-rows: var(--cell-size);
-            grid-auto-flow: row; /* 先在垂直方向填滿，再橫向換列 */
+            grid-auto-flow: row; /* 先垂直填滿一列，再向左移動 */
             border-top: 2.5px solid var(--paper-grid-color);
             border-right: 2.5px solid var(--paper-grid-color);
             background: white;
@@ -162,6 +161,7 @@
             position: relative;
         }
 
+        /* 十字格虛線 */
         .cell::after {
             content: "";
             position: absolute;
@@ -202,14 +202,14 @@
             <input type="number" id="rowSelect" value="6" min="1" max="30" oninput="sync()">
         </div>
         <div class="config-item">
-            <label for="sizeRange">格子大小：</label>
+            <label for="sizeRange">格子大小 (px)：</label>
             <input type="range" id="sizeRange" min="30" max="100" value="50" oninput="sync()">
         </div>
     </div>
     
     <div class="btn-group">
         <span id="counter" style="color:#6c757d; font-size:14px;">字數統計：0</span>
-        <button onclick="window.print()">儲存為 PDF / 列印</button>
+        <button onclick="window.print()">列印 / 存為 PDF</button>
     </div>
 </div>
 
@@ -224,14 +224,14 @@
         const container = document.getElementById('main-container');
         document.getElementById('counter').innerText = `字數統計：${rawText.replace(/\s/g, '').length}`;
 
-        // 動態更新 CSS 變數以控制佈局
+        // 更新 CSS 變數
         document.documentElement.style.setProperty('--rows-per-col', rowsPerCol);
         document.documentElement.style.setProperty('--cell-size', cellSize + 'px');
 
         const colsPerPage = 15; 
         const totalCellsPerPage = rowsPerCol * colsPerPage;
 
-        // 換行邏輯處理：補齊垂直剩餘空格以達成換列效果
+        // 處理換行：補齊垂直剩餘格數以換列
         let processedText = "";
         const rawLines = rawText.split('\n');
         rawLines.forEach(line => {
@@ -288,7 +288,7 @@
             const grid = document.createElement('div');
             grid.className = 'manuscript-grid';
             
-            // 計算網格長度
+            // 計算網格長度，確保示範區與抄寫區對齊
             const targetLength = isDemo ? Math.max(totalCellsPerPage, content.length) : Math.max(totalCellsPerPage, minChars);
             const finalLength = Math.ceil(targetLength / rowsPerCol) * rowsPerCol;
 
@@ -305,7 +305,7 @@
         }
     }
 
-    // 初始載入
+    // 初始執行一次
     window.onload = sync;
 </script>
 
