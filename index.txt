@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專業直向作文抄寫產生器</title>
+    <style>
+        :root {
+            /* 業界稿紙標準顏色：綠色或紅色 */
+            --paper-grid-color: #2e7d32; 
+            --cell-size: 32px; 
+            --bg-color: #f0f2f5;
+        }
+
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
+
+        body { 
+            font-family: "標楷體", "BiauKai", "DFKai-SB", serif; 
+            padding: 20px; 
+            background: var(--bg-color); 
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 操作面板 */
+        .ui-panel { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            margin-bottom: 30px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            width: 100%;
+            max-width: 950px;
+        }
+
+        /* 直排輸入框：模擬寫作感 */
+        textarea { 
+            width: 100%; 
+            height: 180px;
+            padding: 15px; 
+            border: 1.5px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 20px;
+            font-family: inherit;
+            writing-mode: vertical-rl; 
+            text-orientation: upright;
+            line-height: 1.8;
+            background: #fffdf9;
+            outline: none;
+            resize: none;
+        }
+
+        .btn-group {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button { 
+            padding: 12px 30px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 16px;
+            background: var(--paper-grid-color);
+            color: white;
+        }
+
+        /* 稿紙頁面區塊 */
+        #main-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .page-block {
+            background: white;
+            padding: 40px 60px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; /* 讓直排內容由右至左起始 */
+            page-break-after: always;
+            border: 1px solid #ddd;
+        }
+
+        .area-label {
+            font-size: 14px;
+            color: #777;
+            margin: 10px 0;
+            padding-right: 12px;
+            border-right: 4px solid var(--paper-grid-color);
+            text-align: right;
+            width: 100%;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        /* 核心網格：強制生成多欄位 */
+        .manuscript-grid {
+            display: grid;
+            writing-mode: vertical-rl; 
+            text-orientation: upright;
+            /* 垂直方向：20 格 */
+            grid-template-rows: repeat(20, var(--cell-size)); 
+            /* 水平方向：15 欄，確保不會只有一行 */
+            grid-template-columns: repeat(15, var(--cell-size)); 
+            grid-auto-flow: row; /* 先垂直填滿，再向左換欄 */
+            border-top: 2px solid var(--paper-grid-color);
+            border-right: 2px solid var(--paper-grid-color);
+            background: white;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            border-bottom: 1px solid var(--paper-grid-color);
+            border-left: 1px solid var(--paper-grid-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: relative;
+        }
+
+        /* 內部十字輔助線 */
+        .cell::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(to right, rgba(46, 125, 50, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(46, 125, 50, 0.08) 1px, transparent 1px);
+            background-position: center;
+            background-size: 100% 100%;
+            pointer-events: none;
+        }
+
+        .divider {
+            height: 50px;
+            width: 100%;
+        }
+
+        @media print {
+            .ui-panel { display: none; }
+            body { background: white; padding: 0; }
+            .page-block { box-shadow: none; border: none; margin: 0; padding: 20px; }
+            #main-container { gap: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="ui-panel">
+    <div style="margin-bottom:10px; font-weight:bold; color:var(--paper-grid-color);">
+        專業直向作文稿紙產生器 (20x15 格式)
+    </div>
+    <textarea id="textInput" oninput="sync()" placeholder="請在此輸入文字，下方將自動同步為示範區...">這個冬天和以往不一樣，我們並沒有在一片歡樂的氣氛中度過愉快的春節。家家戶戶閉門不出，期盼着這次疫情早點過去。
+
+然而當我們大家窩在家裡的時候，仍然有一群人義無反顧的衝到一線和病魔做鬥爭...</textarea>
+    
+    <div class="btn-group">
+        <span id="counter" style="color:#888; font-size:14px;">字數統計：0 字</span>
+        <button onclick="window.print()">列印 / 轉存 PDF</button>
+    </div>
+</div>
+
+<div id="main-container"></div>
+
+<script>
+    function sync() {
+        const rawText = document.getElementById('textInput').value;
+        const container = document.getElementById('main-container');
+        document.getElementById('counter').innerText = `字數統計：${rawText.replace(/\s/g, '').length} 字`;
+
+        // 處理格式：自動偵測換行並縮進兩格
+        const lines = rawText.split('\n');
+        let processedText = "";
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed.length > 0) {
+                processedText += "　　" + trimmed;
+            }
+        });
+
+        container.innerHTML = '';
+        const rowsPerCol = 20; 
+        const colsPerPage = 15; 
+        const totalCells = rowsPerCol * colsPerPage; // 300字一頁
+
+        if (processedText.length === 0) {
+            renderPage("", 1);
+            return;
+        }
+
+        // 按照 300 字一頁進行切割
+        for (let i = 0; i < processedText.length; i += totalCells) {
+            const chunk = processedText.substring(i, i + totalCells);
+            renderPage(chunk, Math.floor(i / totalCells) + 1);
+        }
+
+        function renderPage(content, pageNum) {
+            const block = document.createElement('div');
+            block.className = 'page-block';
+
+            // --- 示範區 (Top) ---
+            const label1 = document.createElement('div');
+            label1.className = 'area-label';
+            label1.innerText = `示範區 (第 ${pageNum} 頁)`;
+            block.appendChild(label1);
+
+            const grid1 = document.createElement('div');
+            grid1.className = 'manuscript-grid';
+            for (let j = 0; j < totalCells; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.innerText = content[j] || '';
+                grid1.appendChild(cell);
+            }
+            block.appendChild(grid1);
+
+            block.appendChild(document.createElement('div')).className = 'divider';
+
+            // --- 抄寫區 (Bottom) ---
+            const label2 = document.createElement('div');
+            label2.className = 'area-label';
+            label2.innerText = `練習抄寫區`;
+            block.appendChild(label2);
+
+            const grid2 = document.createElement('div');
+            grid2.className = 'manuscript-grid';
+            for (let j = 0; j < totalCells; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.innerText = ''; 
+                grid2.appendChild(cell);
+            }
+            block.appendChild(grid2);
+
+            container.appendChild(block);
+        }
+    }
+
+    window.onload = sync;
+</script>
+
+</body>
+</html>
